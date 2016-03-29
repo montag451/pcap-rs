@@ -1,0 +1,7 @@
+[package]
+name = "pcap"
+version = "0.1.0"
+authors = ["montag451 <montag451@laposte.net>"]
+
+[dependencies]
+byteorder = "0.4"
