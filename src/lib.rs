@@ -28,15 +28,6 @@ impl From<io::Error> for Error {
     }
 }
 
-impl From<byteorder::Error> for Error {
-    fn from(err: byteorder::Error) -> Self {
-        match err {
-            byteorder::Error::UnexpectedEOF => Error::IOError(io::Error::new(io::ErrorKind::UnexpectedEof, "")),
-            byteorder::Error::Io(e) => Error::IOError(e),
-        }
-    }
-}
-
 pub struct GlobalHeader {
     pub magic_number: u32,
     pub version_major: u16,
@@ -60,25 +51,22 @@ pub struct Reader<R> {
     need_swap: bool,
 }
 
-fn read_u16<R: Read>(r: &mut R, swap: bool) -> Result<u16> {
-    match r.read_u16::<NativeEndian>() {
-        Ok(i) => if swap { Ok(i.swap_bytes()) } else { Ok(i) },
-        Err(e) => Err(Error::from(e)),
-    }
+fn read_u16(buf: &mut &[u8], swap: bool) -> u16 {
+    assert!(buf.len() >= 2);
+    let i = buf.read_u16::<NativeEndian>().unwrap();
+    if swap { i.swap_bytes() } else { i }
 }
 
-fn read_u32<R: Read>(r: &mut R, swap: bool) -> Result<u32> {
-    match r.read_u32::<NativeEndian>() {
-        Ok(i) => if swap { Ok(i.swap_bytes()) } else { Ok(i) },
-        Err(e) => Err(Error::from(e)),
-    }
+fn read_u32(buf: &mut &[u8], swap: bool) -> u32 {
+    assert!(buf.len() >= 4);
+    let i = buf.read_u32::<NativeEndian>().unwrap();
+    if swap { i.swap_bytes() } else { i }
 }
 
-fn read_i32<R: Read>(r: &mut R, swap: bool) -> Result<i32> {
-    match r.read_i32::<NativeEndian>() {
-        Ok(i) => if swap { Ok(i.swap_bytes()) } else { Ok(i) },
-        Err(e) => Err(Error::from(e)),
-    }
+fn read_i32(buf: &mut &[u8], swap: bool) -> i32 {
+    assert!(buf.len() >= 4);
+    let i = buf.read_i32::<NativeEndian>().unwrap();
+    if swap { i.swap_bytes() } else { i }
 }
 
 fn read_exact<R: Read>(r: &mut R, buf: &mut [u8]) -> Result<()> {
@@ -104,19 +92,19 @@ impl<R: Read> Reader<R> {
         let mut hdr = [0; GLOBAL_HEADER_SIZE];
         try!(read_exact(&mut r, &mut hdr));
         let mut hdr_ptr: &[u8] = &hdr;
-        let magic_number = try!(read_u32(&mut hdr_ptr, false));
+        let magic_number = read_u32(&mut hdr_ptr, false);
         let need_swap = match magic_number {
             MAGIC_NUMBER | MAGIC_NUMBER_NANO_RES => false,
             MAGIC_NUMBER_SWAPPED | MAGIC_NUMBER_NANO_RES_SWAPPED => false,
             e => return Err(Error::BadMagicNumber(e)),
         };
         let magic_number = if need_swap { magic_number.swap_bytes() } else { magic_number };
-        let version_major = read_u16(&mut hdr_ptr, need_swap).unwrap();
-        let version_minor = read_u16(&mut hdr_ptr, need_swap).unwrap();
-        let thiszone = read_i32(&mut hdr_ptr, need_swap).unwrap();
-        let sigfigs = read_u32(&mut hdr_ptr, need_swap).unwrap();
-        let snaplen = read_u32(&mut hdr_ptr, need_swap).unwrap();
-        let network = read_u32(&mut hdr_ptr, need_swap).unwrap();
+        let version_major = read_u16(&mut hdr_ptr, need_swap);
+        let version_minor = read_u16(&mut hdr_ptr, need_swap);
+        let thiszone = read_i32(&mut hdr_ptr, need_swap);
+        let sigfigs = read_u32(&mut hdr_ptr, need_swap);
+        let snaplen = read_u32(&mut hdr_ptr, need_swap);
+        let network = read_u32(&mut hdr_ptr, need_swap);
         Ok(Reader {
             r: r,
             global_header: GlobalHeader {
@@ -144,10 +132,10 @@ impl<R: Read> Iterator for Reader<R> {
             Err(e) => return Some(Err(e)),
         }
         let mut hdr_ptr: &[u8] = &hdr;
-        let ts_sec = read_u32(&mut hdr_ptr, self.need_swap).unwrap();
-        let ts_usec = read_u32(&mut hdr_ptr, self.need_swap).unwrap();
-        let incl_len = read_u32(&mut hdr_ptr, self.need_swap).unwrap();
-        let orig_len = read_u32(&mut hdr_ptr, self.need_swap).unwrap();
+        let ts_sec = read_u32(&mut hdr_ptr, self.need_swap);
+        let ts_usec = read_u32(&mut hdr_ptr, self.need_swap);
+        let incl_len = read_u32(&mut hdr_ptr, self.need_swap);
+        let orig_len = read_u32(&mut hdr_ptr, self.need_swap);
         let mut pkt = vec![0; incl_len as usize];
         match read_exact(&mut self.r, &mut pkt) {
             Ok(_) => {},
