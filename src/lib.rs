@@ -95,7 +95,7 @@ impl<R: Read> Reader<R> {
         let magic_number = read_u32(&mut hdr_ptr, false);
         let need_swap = match magic_number {
             MAGIC_NUMBER | MAGIC_NUMBER_NANO_RES => false,
-            MAGIC_NUMBER_SWAPPED | MAGIC_NUMBER_NANO_RES_SWAPPED => false,
+            MAGIC_NUMBER_SWAPPED | MAGIC_NUMBER_NANO_RES_SWAPPED => true,
             e => return Err(Error::BadMagicNumber(e)),
         };
         let magic_number = if need_swap { magic_number.swap_bytes() } else { magic_number };
