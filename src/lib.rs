@@ -152,4 +152,73 @@ impl<R: Read> Iterator for Reader<R> {
 }
 
 #[test]
-fn it_works() {}
+fn test_one_packet() {
+    let buf: &[u8] = &[
+        0xa1, 0xb2, 0xc3, 0xd4, 0x00, 0x02, 0x00, 0x04,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+        0x56, 0xfb, 0x98, 0xfb, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+        0x61,
+    ];
+    let mut reader = Reader::new(buf).unwrap();
+    assert_eq!(reader.global_header.magic_number, 0xa1b2c3d4);
+    assert_eq!(reader.global_header.version_major, 2);
+    assert_eq!(reader.global_header.version_minor, 4);
+    assert_eq!(reader.global_header.thiszone, 0);
+    assert_eq!(reader.global_header.sigfigs, 0);
+    assert_eq!(reader.global_header.snaplen, 262144);
+    assert_eq!(reader.global_header.network, 1);
+    match reader.next() {
+        Some(res) => {
+            let (hdr, pkt) = res.unwrap();
+            assert_eq!(hdr.ts_sec, 1459329275);
+            assert_eq!(hdr.ts_usec, 0);
+            assert_eq!(hdr.incl_len, 1);
+            assert_eq!(hdr.orig_len, 1);
+            assert_eq!(pkt.len(), 1);
+            assert_eq!(pkt[0], 0x61);
+        },
+        None => panic!("no packet found"),
+    }
+    match reader.next() {
+        Some(res) => panic!("only one packet should have been found"),
+        None => {}
+    }
+}
+
+#[test]
+fn test_one_packet_2() {
+    let buf: &[u8] = &[
+        0xd4, 0xc3, 0xb2, 0xa1, 0x02, 0x00, 0x04, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x04, 0x00, 0x01, 0x00, 0x00, 0x00,
+        0xfb, 0x98, 0xfb, 0x56, 0x00, 0x00, 0x00, 0x00,
+        0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+        0x61,
+    ];
+    let mut reader = Reader::new(buf).unwrap();
+    assert_eq!(reader.global_header.magic_number, 0xa1b2c3d4);
+    assert_eq!(reader.global_header.version_major, 2);
+    assert_eq!(reader.global_header.version_minor, 4);
+    assert_eq!(reader.global_header.thiszone, 0);
+    assert_eq!(reader.global_header.sigfigs, 0);
+    assert_eq!(reader.global_header.snaplen, 262144);
+    assert_eq!(reader.global_header.network, 1);
+    match reader.next() {
+        Some(res) => {
+            let (hdr, pkt) = res.unwrap();
+            assert_eq!(hdr.ts_sec, 1459329275);
+            assert_eq!(hdr.ts_usec, 0);
+            assert_eq!(hdr.incl_len, 1);
+            assert_eq!(hdr.orig_len, 1);
+            assert_eq!(pkt.len(), 1);
+            assert_eq!(pkt[0], 0x61);
+        },
+        None => panic!("no packet found"),
+    }
+    match reader.next() {
+        Some(res) => panic!("only one packet should have been found"),
+        None => {}
+    }
+}
