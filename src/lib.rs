@@ -182,7 +182,7 @@ fn test_one_packet() {
         None => panic!("no packet found"),
     }
     match reader.next() {
-        Some(res) => panic!("only one packet should have been found"),
+        Some(_) => panic!("only one packet should have been found"),
         None => {}
     }
 }
@@ -218,7 +218,7 @@ fn test_one_packet_2() {
         None => panic!("no packet found"),
     }
     match reader.next() {
-        Some(res) => panic!("only one packet should have been found"),
+        Some(_) => panic!("only one packet should have been found"),
         None => {}
     }
 }
